@@ -1,0 +1,10 @@
+POST http://localhost:3000/files
+Content-Type: multipart/form-data
+
+{
+  "file": "@/C:/Users/USER/Pictures/Screenshotsg",
+  "userId":"10",
+  "fileName":"Muhumuzafile",
+  "size": 10
+}
+
