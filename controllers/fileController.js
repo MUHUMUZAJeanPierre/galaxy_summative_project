@@ -7,19 +7,22 @@ const createFile = async (req, res) => {
     return res.status(400).send({ error: "No file uploaded" });
   }
 
-  const { userId, fileName } = req.body;
-  const { filename, path: filePath, size } = req.file;
+  const { fileName } = req.body;
+  const { filename, path: filePath } = req.file;
 
-  if (!userId || !fileName) {
-    return res.status(400).send({ error: "userId and fileName are required" });
+  if (!fileName) {
+    return res.status(400).send({ error: "fileName is required" });
   }
 
   try {
+    const existingFile = await File.findOne({ fileName });
+    if (existingFile) {
+      return res.status(409).send({ error: "A file with the same name already exists" });
+    }
+
     const fileData = {
-      userId,
       fileName,
       filePath,
-      size,
     };
 
     const newFile = new File(fileData);
@@ -34,89 +37,116 @@ const createFile = async (req, res) => {
     res.status(500).send({ error: "Error saving file metadata to database" });
   }
 };
+const readFileById = async (req, res) => {
+  const { id } = req.params;  
 
-const readFile = async (req, res) => {
-  const { userId, fileName } = req.query;
-
-  if (!userId || !fileName) {
-    return res.status(400).send({ error: "userId and fileName are required" });
+  if (!id) {
+    return res.status(400).send({ error: "ID is required" });
   }
 
   try {
-    const file = await File.findOne({ userId, fileName });
+    const file = await File.findById(id);
     if (!file) {
-      return res.status(404).send({ error: "File metadata not found" });
+      return res.status(404).send({ error: "File not found" });
     }
 
-    if (!fs.existsSync(file.filePath)) {
-      return res.status(404).send({ error: "File content not found on disk" });
-    }
-
-    const content = fs.readFileSync(file.filePath, "utf-8");
-    res.send({ file, content });
+    res.send({
+      message: "File retrieved successfully",
+      file: file
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).send({ error: "Error reading file metadata or content" });
+    res.status(500).send({ error: "Error retrieving file metadata" });
+  }
+};
+
+const readFile = async (req, res) => {
+  try {
+    const files = await File.find();
+    if (!files || files.length === 0) {
+      return res.status(404).send({ error: "No files found" });
+    }
+
+    res.send({
+      message: "Files retrieved successfully",
+      files: files
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ error: "Error retrieving files or metadata" });
   }
 };
 
 const updateFile = async (req, res) => {
-  const { userId, fileName, content } = req.body;
+  const { id } = req.params;
+  const { fileName } = req.body;
 
-  if (!userId || !fileName || content === undefined) {
-    return res.status(400).send({ error: "userId, fileName, and content are required" });
+  if (!id || !fileName ) {
+    return res.status(400).send({ error: "id, fileName, and filePath are required" });
   }
 
   try {
-    const file = await File.findOne({ userId, fileName });
+    const file = await File.findById(id);
     if (!file) {
-      return res.status(404).send({ error: "File metadata not found" });
+      return res.status(404).send({ error: "File not found" });
     }
 
-    if (!fs.existsSync(file.filePath)) {
-      return res.status(404).send({ error: "File content not found on disk" });
-    }
+    // Resolve filePath to an absolute path if it's not already
+    // const fullFilePath = path.resolve(filePath); // Resolves relative paths to absolute ones
+    // console.log("Full file path:", fullFilePath);
 
-    fs.writeFileSync(file.filePath, content);
-    const stats = fs.statSync(file.filePath);
-    file.size = stats.size;
+    // if (!fs.existsSync(fullFilePath)) {
+    //   return res.status(400).send({ error: "Provided filePath does not exist" });
+    // }
 
-    await file.save();
-    res.send({ message: "File updated successfully", file });
+    // Update the file metadata
+    file.fileName = fileName;
+    // file.filePath = fullFilePath;
+    file.updatedAt = new Date();  
+
+    const updatedFile = await file.save();
+    res.send({
+      message: "File updated successfully",
+      file: updatedFile
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: "Error updating file or metadata" });
+    console.error("Error updating file:", err.message);
+    res.status(500).send({ error: "Error updating file" });
   }
 };
 
- const deleteFile = async (req, res) => {
-  const { userId, fileName } = req.body;
 
-  if (!userId || !fileName) {
-    return res.status(400).send({ error: "userId and fileName are required" });
+const deleteFile = async (req, res) => {
+  const { id } = req.params;  
+
+  if (!id) {
+    return res.status(400).send({ error: "id is required" });
   }
 
   try {
-    const file = await File.findOne({ userId, fileName });
+    const file = await File.findById(id);
     if (!file) {
       return res.status(404).send({ error: "File metadata not found" });
     }
 
     if (fs.existsSync(file.filePath)) {
-      fs.unlinkSync(file.filePath); 
+      fs.unlinkSync(file.filePath);  
     }
 
-    await file.remove();
-    res.send({ message: "File deleted successfully" });
+    await file.deleteOne();  
+    res.send({
+      file: file,
+      message: "File deleted successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).send({ error: "Error deleting file or metadata" });
   }
 };
 
-module.exports= {
-    createFile,
-    deleteFile,
-    readFile,
-    updateFile,
-}
+module.exports = {
+  createFile,
+  deleteFile,
+  readFile,
+  updateFile,
+  readFileById
+};

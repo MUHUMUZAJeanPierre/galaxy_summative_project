@@ -4,20 +4,16 @@ const {
   readFile,
   updateFile,
   deleteFile,
+  readFileById
 } = require("../controllers/fileController");
 const upload = require('../middleware/multerConfig');
 const router = express.Router();
 
-// POST - Upload a file
+
 router.post("/", upload.single("file"), createFile);
-
-// GET - Read a file
-router.get("/", readFile);  // This expects query params: ?userId=12345&fileName=example.txt
-
-// PUT - Update file content
-router.put("/", updateFile);  // Expects { userId, fileName, content } in the body
-
-// DELETE - Delete a file
-router.delete("/", deleteFile);  // Expects { userId, fileName } in the body
+router.get("/", readFile);  
+router.get("/:id", readFileById);  
+router.put("/:id", updateFile);  
+router.delete("/:id", deleteFile);  
 
 module.exports = router;
