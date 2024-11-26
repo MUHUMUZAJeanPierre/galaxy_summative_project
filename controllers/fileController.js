@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const File = require("../models/fileModel");
-const validateFile = require('../utils/fileValidation')
+const { validateFile } = require('../utils/fileValidation')
 
 
 const createFile = async (req, res) => {
@@ -9,16 +9,17 @@ const createFile = async (req, res) => {
     return res.status(400).send({ error: "No file uploaded" });
   }
 
-  const { fileName } = req.body;
-  console.log("fileName", fileName)
-
-  const { path: filePath } = req.file;
-
-  if (!fileName) {
-    return res.status(400).send({ error: "fileName is required" });
-  }
-
   try {
+    // Validate and extract file data
+    const { fileName } = validateFile(req.body);
+
+    if (!fileName) {
+      return res.status(400).send({ error: "fileName is required" });
+    }
+
+    const { path: filePath } = req.file;
+
+    // Check if the file already exists
     const existingFile = await File.findOne({ fileName });
     if (existingFile) {
       return res.status(409).send({ error: "A file with the same name already exists" });
@@ -37,14 +38,13 @@ const createFile = async (req, res) => {
       file: newFile,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: "Error saving file metadata to database" });
+    console.error(err.message);
+    res.status(400).send({ error: err.message });
   }
 };
 
-
 const readFileById = async (req, res) => {
-  const { id } = req.params;  
+  const { id } = req.params;
 
   if (!id) {
     return res.status(400).send({ error: "ID is required" });
@@ -73,7 +73,6 @@ const readFile = async (req, res) => {
     if (!files || files.length === 0) {
       return res.status(404).send({ error: "No files found" });
     }
-
     res.send({
       message: "Files retrieved successfully",
       files: files
@@ -86,9 +85,9 @@ const readFile = async (req, res) => {
 
 const updateFile = async (req, res) => {
   const { id } = req.params;
-  const { fileName } = validateFile(req.body);
+  const { fileName, filePath } = validateFile(req.body);
 
-  if (!id || !fileName ) {
+  if (!id || !fileName || !filePath) {
     return res.status(400).send({ error: "id, fileName, and filePath are required" });
   }
 
@@ -97,30 +96,21 @@ const updateFile = async (req, res) => {
     if (!file) {
       return res.status(404).send({ error: "File not found" });
     }
-
-    // Resolve filePath to an absolute path if it's not already
-    // const fullFilePath = path.resolve(filePath); // Resolves relative paths to absolute ones
-    // console.log("Full file path:", fullFilePath);
-
-    // if (!fs.existsSync(fullFilePath)) {
-    //   return res.status(400).send({ error: "Provided filePath does not exist" });
-    // }
-
-    // Update the file metadata
     file.fileName = fileName;
-    // file.filePath = fullFilePath;
-    file.updatedAt = new Date();  
+    file.filePath = filePath;
+    file.updatedAt = new Date();
 
     const updatedFile = await file.save();
     res.send({
       message: "File updated successfully",
-      file: updatedFile
+      file: updatedFile,
     });
   } catch (err) {
     console.error("Error updating file:", err.message);
     res.status(500).send({ error: "Error updating file" });
   }
 };
+
 
 
 const deleteFile = async (req, res) => {
@@ -138,13 +128,14 @@ const deleteFile = async (req, res) => {
     }
 
     if (fs.existsSync(file.filePath)) {
-      fs.unlinkSync(file.filePath);  
+      fs.unlinkSync(file.filePath);
     }
 
-    await file.deleteOne();  
+    await file.deleteOne();
     res.send({
       file: file,
-      message: "File deleted successfully" });
+      message: "File deleted successfully"
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send({ error: "Error deleting file or metadata" });

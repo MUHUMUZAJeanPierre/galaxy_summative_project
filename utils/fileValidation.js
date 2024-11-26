@@ -1,41 +1,27 @@
 const Joi = require('joi');
-const mongoose = require('mongoose');
 
 const fileValidationSchema = Joi.object({
     fileName: Joi.string()
-        .required()
-        .messages({
-            'string.base': `"fileName" should be a type of 'text'`,
-            'string.empty': `"fileName" cannot be an empty field`,
-        }),
-
+      .required()
+      .messages({
+        'string.base': `"fileName" should be a type of 'text'`,
+        'string.empty': `"fileName" cannot be an empty field`,
+        'any.required': `"fileName" is required`,
+      }),
+  
     filePath: Joi.string()
-        .required()
-        .messages({
-            'string.base': `"filePath" should be a type of 'text'`,
-            'string.empty': `"filePath" cannot be an empty field`,
-            'any.required': `"filePath" is a required field`
-        }),
-
-    createdAt: Joi.date()
-        .default(Date.now)
-        .messages({
-            'date.base': `"createdAt" should be a valid date`
-        }),
-
-    userId: Joi.string()
-        .custom((value, helpers) => {
-            if (!mongoose.Types.ObjectId.isValid(value)) {
-                return helpers.message('"userId" must be a valid ObjectId');
-            }
-            return value;
-        })
-        .required()
-        .messages({
-            'string.base': `"userId" should be a type of 'text'`,
-            'any.required': `"userId" is a required field`
-        })
-});
+      .required()
+      .messages({
+        'string.base': `"filePath" should be a type of 'text'`,
+        'string.empty': `"filePath" cannot be an empty field`,
+        'any.required': `"filePath" is a required field`,
+      }),
+  
+    createdAt: Joi.date().default(Date.now).messages({
+      'date.base': `"createdAt" should be a valid date`,
+    }),
+  });
+  
 
 const options = {
     abortEarly: false, 
@@ -45,9 +31,10 @@ const options = {
 
 const validateFile = (fileData) => {
     const result = fileValidationSchema.validate(fileData, options);
-    console.log("Validation Result:", result);
-    return result;
+    if (result.error) {
+        throw new Error(result.error.details.map((err) => err.message).join(", "));
+    }
+    return result.value; 
 };
-
 
 module.exports = { validateFile, options };
