@@ -2,6 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+require('dotenv').config();
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
 
 const register = async (req, res) => {
@@ -23,10 +25,10 @@ const register = async (req, res) => {
         await newUser.save();
         res.status(201).json({ message: "User registered successfully", data: newUser });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        console.error("Error during registration:", error); // Log error for debugging
+        res.status(500).json({ message: "Server error", error: error.message || error });
     }
 };
-
 
 const login = async (req, res) => {
     const { email, password } = req.body;
@@ -42,19 +44,25 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign(
-            { userId: user._id, email: user.email },
-            "SECRET_KEY",
-        );
+            { id: user._id },  
+            JWT_SECRET)
 
-        res.status(200).json({ message: "Login successful", user:user,  token: token });
+        res.status(200).json({
+            message: "Login successful",
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+            },
+            token: token,  
+        });
     } catch (error) {
         console.error("Error during login:", error);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
-
 module.exports = {
     register,
     login
-}
+};

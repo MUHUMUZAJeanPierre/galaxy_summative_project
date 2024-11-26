@@ -1,14 +1,14 @@
 const express = require("express");
 const connectDB = require("./config/db");
 const fileRoutes = require("./routes/fileRoutes");
-const  router = require('./routes/User')
+const  userRouter = require('./routes/User')
 
 const app = express();
 app.use(express.json());
 
 connectDB();
 app.use("/files", fileRoutes);
-app.use('/', router)
+app.use('/', userRouter)
 
 const PORT = 3000;
 app.listen(PORT, () => {

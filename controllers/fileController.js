@@ -1,6 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const File = require("../models/fileModel");
+const validateFile = require('../utils/fileValidation')
+
 
 const createFile = async (req, res) => {
   if (!req.file) {
@@ -8,7 +10,9 @@ const createFile = async (req, res) => {
   }
 
   const { fileName } = req.body;
-  const { filename, path: filePath } = req.file;
+  console.log("fileName", fileName)
+
+  const { path: filePath } = req.file;
 
   if (!fileName) {
     return res.status(400).send({ error: "fileName is required" });
@@ -37,6 +41,8 @@ const createFile = async (req, res) => {
     res.status(500).send({ error: "Error saving file metadata to database" });
   }
 };
+
+
 const readFileById = async (req, res) => {
   const { id } = req.params;  
 
@@ -60,6 +66,7 @@ const readFileById = async (req, res) => {
   }
 };
 
+
 const readFile = async (req, res) => {
   try {
     const files = await File.find();
@@ -79,7 +86,7 @@ const readFile = async (req, res) => {
 
 const updateFile = async (req, res) => {
   const { id } = req.params;
-  const { fileName } = req.body;
+  const { fileName } = validateFile(req.body);
 
   if (!id || !fileName ) {
     return res.status(400).send({ error: "id, fileName, and filePath are required" });
@@ -117,7 +124,8 @@ const updateFile = async (req, res) => {
 
 
 const deleteFile = async (req, res) => {
-  const { id } = req.params;  
+  const { id } = req.params;
+
 
   if (!id) {
     return res.status(400).send({ error: "id is required" });

@@ -6,14 +6,15 @@ const {
   deleteFile,
   readFileById
 } = require("../controllers/fileController");
-const upload = require('../middleware/multerConfig');
+const upload = require("../middleware/multerConfig");
+const { authenticateToken } = require("../middleware/authorization");
+
 const router = express.Router();
 
-
-router.post("/", upload.single("file"), createFile);
-router.get("/", readFile);  
-router.get("/:id", readFileById);  
-router.put("/:id", updateFile);  
-router.delete("/:id", deleteFile);  
+router.post("/",upload.single("file"), createFile);
+router.get("/", readFile);
+router.get("/:id", authenticateToken, readFileById);
+router.put("/:id", authenticateToken, updateFile);
+router.delete("/:id", authenticateToken, deleteFile);
 
 module.exports = router;
