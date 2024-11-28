@@ -57,7 +57,7 @@ const readFileById = async (req, res) => {
     }
 
     res.send({
-      message: "File retrieved successfully",
+      message: "File retrieved by id successfully",
       file: file
     });
   } catch (err) {
